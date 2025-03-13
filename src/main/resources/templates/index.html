@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tic Tac Toe</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/sockjs-client/1.5.1/sockjs.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/stomp.js/2.3.3/stomp.min.js"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      background-color: #f4f4f4;
+    }
+
+    h1 {
+      color: #333;
+    }
+
+    button {
+      font-size: 20px;
+      padding: 10px 20px;
+      margin: 10px;
+      cursor: pointer;
+      border: none;
+      background-color: #007bff;
+      color: white;
+      border-radius: 5px;
+    }
+
+    button:hover {
+      background-color: #0056b3;
+    }
+
+    #session-id, #stats {
+      font-size: 18px;
+      font-weight: bold;
+      margin-top: 10px;
+    }
+
+    table {
+      margin: 20px auto;
+      border-collapse: collapse;
+    }
+
+    td {
+      width: 80px;
+      height: 80px;
+      font-size: 36px;
+      font-weight: bold;
+      text-align: center;
+      vertical-align: middle;
+      border: 2px solid #333;
+      background-color: white;
+      cursor: pointer;
+    }
+
+    td:hover {
+      background-color: #ddd;
+    }
+  </style>
+
+</head>
+<body>
+<h1>Tic Tac Toe</h1>
+
+<button onclick="newGame()">New Game</button>
+<button onclick="startGame()">Start Game</button>
+<button onclick="getGameStats()">Game Stat</button>
+
+<h2>Session ID: <span id="session-id">-</span></h2>
+<h2>Game Status</h2>
+<table border="1">
+  <tbody id="board">
+  <tr>
+    <td data-index="0"></td><td data-index="1"></td><td data-index="2"></td>
+  </tr>
+  <tr>
+    <td data-index="3"></td><td data-index="4"></td><td data-index="5"></td>
+  </tr>
+  <tr>
+    <td data-index="6"></td><td data-index="7"></td><td data-index="8"></td>
+  </tr>
+  </tbody>
+</table>
+
+<h2>Statistics</h2>
+<div id="stats">
+  <p><strong>Moves:</strong> <span id="moves-list">-</span></p>
+  <p><strong>Game Status:</strong> <span id="game-status">-</span></p>
+</div>
+<h2>Result</h2>
+<div id="result">-</div>
+<script>
+  let socket = new SockJS('/ws');
+  let stompClient = Stomp.over(socket);
+  let sessionId = null; // Храним ID сессии
+
+  stompClient.connect({}, function () {
+    // Получаем sessionId
+    stompClient.subscribe('/user/topic/session-id', function (message) {
+      sessionId = message.body;
+      document.getElementById("session-id").innerText = sessionId;
+
+      // Подписываемся на обновления поля (полностью)
+      stompClient.subscribe(`/topic/game-board/${sessionId}`, function (msg) {
+        updateBoard(JSON.parse(msg.body));
+      });
+
+      // Подписываемся на обновления ячеек (индекс:значение)
+      stompClient.subscribe(`/topic/game-update-move/${sessionId}`, function (msg) {
+        let [index, value] = msg.body.split(":");
+        updateCell(parseInt(index), value);
+      });
+      // Подписываемся на обновления ячеек (индекс:значение)
+      stompClient.subscribe(`/topic/game-update-result/${sessionId}`, function (msg) {
+        var result;
+        if (msg.body === "X_WIN") {
+          result = "X Wins game"
+        }
+        if (msg.body==="O_WIN"){
+          result="0 Wins game"
+        }
+        if (msg.body==="DRAW"){
+          result="DRAW"
+        }
+        if (msg.body==="FAILURE"){
+          result="FAILURE"
+        }
+        document.getElementById("result").innerText = result;
+
+      });
+
+      // Подписываемся на статистику
+      stompClient.subscribe(`/topic/game-stat/${sessionId}`, function (msg) {
+        let gameState = JSON.parse(msg.body); // Парсим JSON
+
+        // Выводим ходы
+        document.getElementById("moves-list").innerText = gameState.moves.join(", ");
+
+        // Выводим статус игры
+        document.getElementById("game-status").innerText = gameState.gameStatus;
+      });
+    });
+  });
+
+  function newGame() {
+    stompClient.send("/app/new-game", {}, {});
+  }
+
+  function startGame() {
+    if (sessionId) {
+      stompClient.send("/app/start-game", {}, sessionId);
+    } else {
+      alert("Start a new game first!");
+    }
+  }
+
+  function getGameStats() {
+    if (sessionId) {
+      stompClient.send("/app/game-stat", {}, sessionId);
+    } else {
+      alert("Start a new game first!");
+    }
+  }
+
+  function updateBoard(board) {
+    let cells = document.querySelectorAll("#board td");
+    board.forEach((value, index) => {
+      cells[index].innerText = value;
+    });
+  }
+
+  function updateCell(index, value) {
+    let cell = document.querySelector(`#board td[data-index="${index}"]`);
+    if (cell) {
+      cell.innerText =  value === "X_TURN"?"X":"0";
+    }
+  }
+</script>
+</body>
+</html>
