@@ -73,13 +73,19 @@
 <table border="1">
   <tbody id="board">
   <tr>
-    <td data-index="0"></td><td data-index="1"></td><td data-index="2"></td>
+    <td data-index="0"></td>
+    <td data-index="1"></td>
+    <td data-index="2"></td>
   </tr>
   <tr>
-    <td data-index="3"></td><td data-index="4"></td><td data-index="5"></td>
+    <td data-index="3"></td>
+    <td data-index="4"></td>
+    <td data-index="5"></td>
   </tr>
   <tr>
-    <td data-index="6"></td><td data-index="7"></td><td data-index="8"></td>
+    <td data-index="6"></td>
+    <td data-index="7"></td>
+    <td data-index="8"></td>
   </tr>
   </tbody>
 </table>
@@ -94,51 +100,44 @@
 <script>
   let socket = new SockJS('/ws');
   let stompClient = Stomp.over(socket);
-  let sessionId = null; // Храним ID сессии
+  let sessionId = null;
 
   stompClient.connect({}, function () {
-    // Получаем sessionId
     stompClient.subscribe('/user/topic/session-id', function (message) {
       sessionId = message.body;
       document.getElementById("session-id").innerText = sessionId;
 
-      // Подписываемся на обновления поля (полностью)
       stompClient.subscribe(`/topic/game-board/${sessionId}`, function (msg) {
         updateBoard(JSON.parse(msg.body));
       });
 
-      // Подписываемся на обновления ячеек (индекс:значение)
       stompClient.subscribe(`/topic/game-update-move/${sessionId}`, function (msg) {
         let [index, value] = msg.body.split(":");
         updateCell(parseInt(index), value);
       });
-      // Подписываемся на обновления ячеек (индекс:значение)
       stompClient.subscribe(`/topic/game-update-result/${sessionId}`, function (msg) {
         var result;
         if (msg.body === "X_WIN") {
           result = "X Wins game"
         }
-        if (msg.body==="O_WIN"){
-          result="0 Wins game"
+        if (msg.body === "O_WIN") {
+          result = "0 Wins game"
         }
-        if (msg.body==="DRAW"){
-          result="DRAW"
+        if (msg.body === "DRAW") {
+          result = "DRAW"
         }
-        if (msg.body==="FAILURE"){
-          result="FAILURE"
+        if (msg.body === "FAILURE") {
+          result = "FAILURE"
         }
         document.getElementById("result").innerText = result;
 
       });
 
-      // Подписываемся на статистику
       stompClient.subscribe(`/topic/game-stat/${sessionId}`, function (msg) {
-        let gameState = JSON.parse(msg.body); // Парсим JSON
+        let gameState = JSON.parse(msg.body);
 
-        // Выводим ходы
         document.getElementById("moves-list").innerText = gameState.moves.join(", ");
 
-        // Выводим статус игры
         document.getElementById("game-status").innerText = gameState.gameStatus;
       });
     });
@@ -174,7 +173,7 @@
   function updateCell(index, value) {
     let cell = document.querySelector(`#board td[data-index="${index}"]`);
     if (cell) {
-      cell.innerText =  value === "X_TURN"?"X":"0";
+      cell.innerText = value === "X_TURN" ? "X" : "0";
     }
   }
 </script>

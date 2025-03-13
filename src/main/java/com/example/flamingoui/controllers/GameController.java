@@ -9,6 +9,6 @@ public class GameController {
 
     @GetMapping("/")
     public String index() {
-        return "index"; // Загружаем `index.html` из `resources/templates/`
+        return "index";
     }
 }

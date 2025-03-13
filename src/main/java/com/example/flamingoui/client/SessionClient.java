@@ -10,17 +10,19 @@ import static com.example.flamingoui.client.ClientConfiguration.SESSION_SERVICE_
 @Component
 public class SessionClient {
     private final RestTemplate restTemplate = new RestTemplate();
-    public String getSession(){
-        String url = SESSION_SERVICE_URL+"/sessions";
+
+    public String getSession() {
+        String url = SESSION_SERVICE_URL + "/sessions";
         return restTemplate.postForEntity(url, null, String.class).getBody();
     }
-    public Void simulateGame(String sessionId){
-        String url = SESSION_SERVICE_URL+"/sessions/"+sessionId+"/simulate";
-        return restTemplate.postForEntity(url, null, Void.class).getBody();
-    }
-    public GameStateData getGameState(String sessionId){
-        String url = SESSION_SERVICE_URL+"/sessions/"+sessionId;
-        return restTemplate.getForObject(url, GameStateResponse.class).data();
 
+    public void simulateGame(String sessionId) {
+        String url = SESSION_SERVICE_URL + "/sessions/" + sessionId + "/simulate";
+        restTemplate.postForEntity(url, null, Void.class).getBody();
+    }
+
+    public GameStateData getGameState(String sessionId) {
+        String url = SESSION_SERVICE_URL + "/sessions/" + sessionId;
+        return restTemplate.getForObject(url, GameStateResponse.class).data();
     }
 }
